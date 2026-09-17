@@ -2,3 +2,9 @@ node_modules/
 .next/
 .env
 .env.local
+.env.*.local
+data/db.json
+data/*.tmp
+public/music/uploads/
+*.log
+.DS_Store
