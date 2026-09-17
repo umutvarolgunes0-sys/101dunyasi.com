@@ -1,0 +1,2 @@
+import {NextResponse} from 'next/server';import {getUserFromCookies} from '@/lib/auth';import {readData} from '@/lib/store';
+export async function GET(req){const u=getUserFromCookies(req.cookies);if(!u||!['DJ','ADMIN','WEBMASTER'].includes(u.role))return NextResponse.json({error:'Yetki gerekli.'},{status:403});const d=readData();return NextResponse.json({playlists:d.playlists||[],music:d.music||[]})}

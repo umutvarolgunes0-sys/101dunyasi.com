@@ -1,0 +1,16 @@
+const fs=require('fs');const path=require('path');const bcrypt=require('bcryptjs');
+const dir=path.join(process.cwd(),'data'),file=path.join(dir,'db.json');
+function makeSeed(){return {users:[
+{id:'1',username:'webmaster',passwordHash:bcrypt.hashSync('webmaster123',10),role:'WEBMASTER',status:'active',permissions:[],createdAt:new Date().toISOString(),bio:'101dunyasi.com site kurucusu',avatar:'',gold:false},
+{id:'2',username:'admin',passwordHash:bcrypt.hashSync('admin123',10),role:'ADMIN',status:'active',permissions:[],createdAt:new Date().toISOString(),bio:'Operasyon yöneticisi',avatar:'',gold:false},
+{id:'3',username:'dj',passwordHash:bcrypt.hashSync('dj123',10),role:'DJ',status:'active',permissions:[],createdAt:new Date().toISOString(),bio:'Canlı DJ',avatar:'',gold:false},
+{id:'4',username:'moderator',passwordHash:bcrypt.hashSync('mod123',10),role:'MODERATOR',status:'active',permissions:[],createdAt:new Date().toISOString(),bio:'Topluluk moderatörü',avatar:'',gold:false}],
+messages:[],requests:[],favorites:[],schedules:[],moderationLogs:[],music:[],auditLogs:[],radioSources:[],playlists:[],permissions:{ADMIN:['users.manage','dj.manage','moderation','requests.manage'],DJ:['radio.live','music.manage','requests.manage'],MODERATOR:['moderation','chat.delete'],USER:['chat.send','requests.create']},
+radio:{live:false,mode:'AUTO',dj:null,title:'101dunyasi.com Otomatik Yayın',announcement:'Hoş geldiniz! DJ bağlandığında canlı yayın başlayacak.',listeners:0,startedAt:null,currentTrack:null},
+settings:{stationName:'101dunyasi.com',welcome:'Canlı DJ • Sohbet • Topluluk',autoFallback:true,requestEnabled:true,registrationEnabled:true,maintenance:false,maxUploadMb:50,fallbackDelaySec:5,siteNotice:'101dunyasi.com\'ya hoş geldin!'}}}
+function ensure(){if(!fs.existsSync(dir))fs.mkdirSync(dir,{recursive:true});if(!fs.existsSync(file))fs.writeFileSync(file,JSON.stringify(makeSeed(),null,2))}
+function readData(){ensure();const d=JSON.parse(fs.readFileSync(file,'utf8'));for(const k of ['users','messages','requests','favorites','schedules','moderationLogs','music','auditLogs','radioSources','playlists'])d[k]??=[];const seeds=makeSeed().users;for(const seed of seeds){if(!d.users.some(x=>x.username.toLowerCase()===seed.username.toLowerCase()))d.users.push(seed)}for(const u of d.users)u.permissions=Array.isArray(u.permissions)?u.permissions:[];d.settings={stationName:'101dunyasi.com',welcome:'Canlı DJ • Sohbet • Topluluk',autoFallback:true,requestEnabled:true,registrationEnabled:true,maintenance:false,maxUploadMb:50,fallbackDelaySec:5,siteNotice:'',...(d.settings||{})};d.radio={live:false,mode:'AUTO',dj:null,title:'101dunyasi.com Otomatik Yayın',announcement:'',listeners:0,startedAt:null,currentTrack:null,fallbackSourceId:null,disco:false,...(d.radio||{})};return d}
+function writeData(d){ensure();const tmp=file+'.tmp';fs.writeFileSync(tmp,JSON.stringify(d,null,2));fs.renameSync(tmp,file)}
+function publicUser(u){return u?{id:u.id,username:u.username,role:u.role,status:u.status||'active',createdAt:u.createdAt,bio:u.bio||'',avatar:u.avatar||'',gold:!!u.gold,permissions:Array.isArray(u.permissions)?u.permissions:[]}:null}
+function roleLevel(r){return {USER:1,MODERATOR:2,DJ:3,ADMIN:4,WEBMASTER:5}[r]||0}
+module.exports={readData,writeData,publicUser,roleLevel};

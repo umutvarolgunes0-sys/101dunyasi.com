@@ -1,0 +1,2 @@
+import {NextResponse} from 'next/server';import {getUserFromCookies} from '@/lib/auth';import {readData,writeData} from '@/lib/store';
+export async function PATCH(req){const u=getUserFromCookies(req.cookies);if(!u)return NextResponse.json({error:'Giriş gerekli.'},{status:401});const b=await req.json(),d=readData(),me=d.users.find(x=>x.id===u.id);if(!me)return NextResponse.json({error:'Kullanıcı bulunamadı.'},{status:404});me.bio=String(b.bio||'').slice(0,300);writeData(d);return NextResponse.json({user:{id:me.id,username:me.username,role:me.role,bio:me.bio}})}
