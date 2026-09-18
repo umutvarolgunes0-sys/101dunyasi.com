@@ -1,0 +1,143 @@
+{
+  "users": [
+    {
+      "id": "wm-1789689041778",
+      "username": "101dunyasi",
+      "passwordHash": "$2b$12$1SDydQW.AO5EBensaF1d9etXVZlVTlpMnDp4OiQer0NiSO1QQMwOG",
+      "role": "WEBMASTER",
+      "status": "active",
+      "permissions": [],
+      "createdAt": "2026-09-17T23:50:41.778Z",
+      "bio": "101dunyasi.com site kurucusu",
+      "avatar": "",
+      "gold": true,
+      "mutedUntil": null
+    }
+  ],
+  "messages": [],
+  "requests": [],
+  "favorites": [],
+  "schedules": [],
+  "moderationLogs": [],
+  "music": [
+    {
+      "id": "seed-blok3",
+      "name": "Blok3 - Sebebi Yar",
+      "url": "/music/blok3-sebebi-yar.mp3",
+      "size": 0,
+      "uploadedBy": "system",
+      "createdAt": "2026-09-17T23:48:25.523Z",
+      "enabled": true
+    }
+  ],
+  "auditLogs": [
+    {
+      "id": "1789689043059-kc5nn",
+      "actor": "101dunyasi",
+      "action": "initial_setup",
+      "target": "system",
+      "meta": null,
+      "at": "2026-09-17T23:50:43.059Z"
+    }
+  ],
+  "radioSources": [],
+  "playlists": [
+    {
+      "id": "default-auto",
+      "name": "Otomatik Yayın",
+      "trackIds": [
+        "seed-blok3"
+      ],
+      "shuffle": false,
+      "repeat": "all",
+      "enabled": true
+    }
+  ],
+  "permissions": {
+    "WEBMASTER": [
+      "users.manage",
+      "users.password",
+      "users.roles",
+      "dj.manage",
+      "moderation",
+      "chat.delete",
+      "chat.clear",
+      "radio.live",
+      "radio.settings",
+      "music.manage",
+      "requests.manage",
+      "requests.create",
+      "site.settings",
+      "site.theme",
+      "security.view",
+      "backup"
+    ],
+    "ADMIN": [
+      "users.manage",
+      "dj.manage",
+      "moderation",
+      "chat.delete",
+      "requests.manage",
+      "requests.create",
+      "radio.live",
+      "music.manage"
+    ],
+    "DJ": [
+      "radio.live",
+      "radio.settings",
+      "music.manage",
+      "requests.manage",
+      "requests.create",
+      "chat.delete"
+    ],
+    "MODERATOR": [
+      "moderation",
+      "chat.delete",
+      "chat.clear",
+      "requests.manage"
+    ],
+    "USER": [
+      "chat.send",
+      "requests.create"
+    ]
+  },
+  "notifications": [],
+  "reports": [],
+  "settings": {
+    "stationName": "101dunyasi.com",
+    "welcome": "Canlı DJ • Sohbet • Topluluk",
+    "siteNotice": "",
+    "autoFallback": true,
+    "requestEnabled": true,
+    "registrationEnabled": true,
+    "maintenance": false,
+    "maxUploadMb": 50,
+    "fallbackDelaySec": 5,
+    "slowModeSec": 0,
+    "badWords": "",
+    "giphyEnabled": false,
+    "theme": "dark"
+  },
+  "setup": {
+    "completed": true,
+    "createdAt": "2026-09-17T23:50:41.778Z"
+  },
+  "radio": {
+    "live": false,
+    "mode": "AUTO",
+    "dj": null,
+    "title": "101dunyasi.com Otomatik Yayın",
+    "announcement": "",
+    "listeners": 0,
+    "startedAt": null,
+    "currentTrack": {
+      "id": "seed-blok3",
+      "name": "Blok3 - Sebebi Yar",
+      "url": "/music/blok3-sebebi-yar.mp3",
+      "startedAt": "2026-09-17T23:49:59.257Z"
+    },
+    "currentSource": "AUTO_RADIO",
+    "disco": false,
+    "streamUrl": "/radio/live.mp3"
+  }
+}
