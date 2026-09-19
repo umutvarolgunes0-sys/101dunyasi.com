@@ -1,6 +1,5 @@
 'use client';
 import {useEffect,useMemo,useRef,useState} from 'react';
-import {io} from 'socket.io-client';
 
 const roleLabel={WEBMASTER:'Site Kurucusu',ADMIN:'Yönetici',DJ:'DJ',MODERATOR:'Moderatör',USER:'Dinleyici'};
 const reactions=['❤️','😂','🔥','👏','🎉','😍','🎵','🙌','✨'];
@@ -19,19 +18,18 @@ export default function RadioRoom(){
   ]).then(([me,msg,rs,req,mu,pl,su])=>{
    setUser(me.user||null);setBio(me.user?.bio||'');setMessages(msg.messages||[]);setRadio(rs);setRequests(req.requests||[]);setMusic(mu.music||[]);setPlaylists(pl.playlists||[]);setSetup(!!su.required);
   }).catch(()=>{});
-  const s=io({withCredentials:true});socket.current=s;
-  s.on('presence',p=>{setOnline(p.users||[]);setRadio(r=>({...r,listeners:p.count||0}))});
-  s.on('radio:status',r=>setRadio(r));
-  s.on('chat:message',m=>setMessages(v=>[...v,m].slice(-500)));
-  s.on('chat:deleted',({id})=>setMessages(v=>v.filter(m=>String(m.id)!==String(id))));
-  s.on('chat:cleared',()=>setMessages([]));
-  s.on('chat:error',x=>setNotice(x.error||'Sohbet işlemi başarısız.'));
-  s.on('notice',x=>setNotice(x?.message||'Yayın motoru bildirimi.'));
-  s.on('chat:reaction',x=>{const id=`r-${Date.now()}-${Math.random()}`;setReactBurst(v=>[...v,{id,...x}].slice(-12));setTimeout(()=>setReactBurst(v=>v.filter(a=>a.id!==id)),1400)});
+  const poll=async()=>{
+   try{
+    const [msg,rs]=await Promise.all([fetch('/api/messages',{cache:'no-store'}).then(r=>r.json()),fetch('/api/dj/status',{cache:'no-store'}).then(r=>r.json())]);
+    setMessages(msg.messages||[]);setRadio(rs);
+   }catch{}
+  };
+  poll();
+  const pollTimer=setInterval(poll,5000);
   const closeMenu=()=>setContextMenu(null);
   const handleDocClick=()=>closeMenu();
   document.addEventListener('click',handleDocClick);
-  return()=>{s.close();stopRecording();document.removeEventListener('click',handleDocClick)};
+  return()=>{clearInterval(pollTimer);stopRecording();document.removeEventListener('click',handleDocClick)};
  },[]);
 
  useEffect(()=>{if(chat.current)chat.current.scrollTop=chat.current.scrollHeight},[messages]);
@@ -70,13 +68,13 @@ export default function RadioRoom(){
   if(radio.live){
    stopRecording();
    const r=await fetch('/api/dj/room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({live:false,disco:radio.disco,announcement:radio.announcement})});
-   const x=await r.json();if(r.ok){setRadio(x);socket.current?.emit('dj:state',x);setNotice('🎵 Otomatik yayın başladı.')}else setNotice(x.error||'Yayın durdurulamadı.');return;
+   const x=await r.json();if(r.ok){setRadio(x);setNotice('🎵 Otomatik yayın başladı.')}else setNotice(x.error||'Yayın durdurulamadı.');return;
   }
   const ok=await enableMic();if(!ok)return;
   const body={live:true,disco:radio.disco,title:radio.title||'101dunyasi.com Live',announcement:radio.announcement||'Canlı DJ yayını'};
   const r=await fetch('/api/dj/room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const x=await r.json();
   if(!r.ok){stopRecording();setNotice(x.error||'Yayın başlatılamadı.');return}
-  setRadio(x);socket.current?.emit('dj:state',x);setNotice('🔴 DJ yayını başladı. Ses 101dunyasi.com ortak yayın akışına gönderiliyor.');
+  setRadio(x);setNotice('🔴 DJ yayını başladı. Ses 101dunyasi.com ortak yayın akışına gönderiliyor.');
  }
  async function toggleMic(){
   if(!dj){setAuth(true);return}
@@ -84,7 +82,7 @@ export default function RadioRoom(){
   if(!stream.current||recorder.current?.state!=='recording'){await enableMic();return}
   const next=!(stream.current.getAudioTracks()[0]?.enabled);stream.current.getAudioTracks().forEach(t=>t.enabled=next);setMic(next);setNotice(next?'🎤 Mikrofon yayında.':'🔇 Mikrofon susturuldu.');
  }
- function toggleDisco(){if(!dj)return;const next=!radio.disco;setRadio(r=>({...r,disco:next}));socket.current?.emit('dj:state',{...radio,disco:next,live:radio.live});setNotice(next?'🪩 Disko ışıkları aktif.':'🪩 Disko ışıkları kapalı.')}
+ function toggleDisco(){if(!dj)return;const next=!radio.disco;setRadio(r=>({...r,disco:next}));setNotice(next?'🪩 Disko ışıkları aktif.':'🪩 Disko ışıkları kapalı.')}
  async function quickModerate(action,target){
   const r=await fetch('/api/moderator/action',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:target.id,action,durationSec:300})});
   const x=await r.json();setContextMenu(null);setNotice(r.ok?(action==='mute'?`🔇 ${target.username} 5 dakika susturuldu.`:action==='ban'?`🚫 ${target.username} engellendi.`:action==='gold'?`⭐ ${target.username} GOLD durumu güncellendi.`:'İşlem tamamlandı.'):x.error||'İşlem başarısız.');
@@ -95,9 +93,9 @@ export default function RadioRoom(){
   setContextMenu({x:Math.min(e.clientX,window.innerWidth-240),y:Math.min(e.clientY,window.innerHeight-220),target});
  }
  function insertEmoji(e){setText(v=>`${v}${e}`);setEmojiOpen(false)}
- function sendGif(){const url=gifUrl.trim();if(!url)return;socket.current?.emit('chat:send',{text:url});setGifUrl('');setGifMode(false);}
- function send(e){e.preventDefault();if(!user||!text.trim())return;socket.current?.emit('chat:send',{text:text.trim()});setText('')}
- function react(e){if(!user){setAuth(true);return}socket.current?.emit('chat:reaction',e)}
+ async function sendGif(){const url=gifUrl.trim();if(!url)return;const r=await fetch('/api/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:url})});const x=await r.json();if(r.ok)setMessages(v=>[...v,x.message].slice(-500));else setNotice(x.error||'Mesaj gönderilemedi.');setGifUrl('');setGifMode(false);}
+ async function send(e){e.preventDefault();if(!user||!text.trim())return;const r=await fetch('/api/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text.trim()})});const x=await r.json();if(r.ok){setMessages(v=>[...v,x.message].slice(-500));setText('')}else setNotice(x.error||'Mesaj gönderilemedi.');}
+ function react(e){if(!user){setAuth(true);return}const id=`r-${Date.now()}-${Math.random()}`;setReactBurst(v=>[...v,{id,emoji:e,username:user.username}].slice(-12));setTimeout(()=>setReactBurst(v=>v.filter(a=>a.id!==id)),1400)}
  async function requestSong(e){e.preventDefault();if(!user){setAuth(true);return}const r=await fetch('/api/requests',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({song})});const x=await r.json();if(!r.ok){setNotice(x.error);return}setRequests(v=>[x.request,...v]);setSong('');setNotice('🎵 İstek gönderildi.')}
  async function uploadMusic(e){e.preventDefault();if(!upload)return;const fd=new FormData();fd.append('file',upload);const r=await fetch('/api/dj/music',{method:'POST',body:fd});const x=await r.json();if(!r.ok){setNotice(x.error);return}setMusic(v=>[...v,x.music]);setUpload(null);if(uploadRef.current)uploadRef.current.value='';setNotice('🎵 Müzik arşive eklendi.')}
  async function saveProfile(e){e.preventDefault();const r=await fetch('/api/profile',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({bio})});if(r.ok){setUser(u=>({...u,bio}));setProfile(false);setNotice('Profil güncellendi.')}}
@@ -113,7 +111,7 @@ export default function RadioRoom(){
    <div className="panel chatPanel chatPanelLarge"><div className="panelTitle"><h2>💬 Canlı Sohbet</h2><span>{messages.length} mesaj</span></div>
     {(dj||mod)&&<div className="chatQuickBar">{dj&&<><button className={radio.live?'quickLive on':'quickLive'} onClick={toggleLive}>{radio.live?'⏹ Yayını Kapat':'▶ Yayını Başlat'}</button><button className={mic?'quickMic on':'quickMic'} onClick={toggleMic}>{mic?'🎙️ Mikrofon Açık':'🎤 Mikrofon Al'}</button><button onClick={toggleDisco}>{radio.disco?'🪩 Işık Kapat':'🪩 Disko'}</button></>}{mod&&<button onClick={()=>setWorkspace(true)}>⚡ Panel</button>}</div>}
     <div className="liveSourceCard"><div><b>{radio.live?`🔴 DJ CANLI • ${radio.dj||''}`:'🎵 OTOMATİK YAYIN'}</b><small>{radio.currentTrack?.name||radio.title||'101dunyasi.com'}</small></div><span>🔊 {radio.mode==='DJ'?'DJ Yayını':'Otomatik Yayın'}</span></div>
-    <div className="chat" ref={chat}>{messages.length?messages.map(m=><div className="msg messageBubble" key={m.id}><span className="msgAvatar">{m.username?.[0]?.toUpperCase()}</span><div className="msgBody"><div className="msgMeta"><b className={m.gold?'goldName':''}>{m.username}</b><small>{roleLabel[m.role]||m.role}</small><time>{new Date(m.createdAt||Date.now()).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</time></div>{/^https?:\/\/.*\.(gif|png|jpg|jpeg|webp)(\?.*)?$/i.test(m.text)?<img className="chatGif" src={m.text} alt="GIF"/>:<span className="msgText">{m.text}</span>}</div>{mod&&<button className="tiny danger" onClick={()=>socket.current?.emit('chat:delete',{id:m.id})}>Sil</button>}</div>):<div className="empty">Henüz mesaj yok.</div>}</div>
+    <div className="chat" ref={chat}>{messages.length?messages.map(m=><div className="msg messageBubble" key={m.id}><span className="msgAvatar">{m.username?.[0]?.toUpperCase()}</span><div className="msgBody"><div className="msgMeta"><b className={m.gold?'goldName':''}>{m.username}</b><small>{roleLabel[m.role]||m.role}</small><time>{new Date(m.createdAt||Date.now()).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</time></div>{/^https?:\/\/.*\.(gif|png|jpg|jpeg|webp)(\?.*)?$/i.test(m.text)?<img className="chatGif" src={m.text} alt="GIF"/>:<span className="msgText">{m.text}</span>}</div>{mod&&<button className="tiny danger" onClick={()=>fetch('/api/messages',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:m.id})}).then(()=>setMessages(v=>v.filter(a=>String(a.id)!==String(m.id))))}>Sil</button>}</div>):<div className="empty">Henüz mesaj yok.</div>}</div>
     <div className="chatTools"><div className="reactionBar">{reactions.map(e=><button type="button" key={e} onClick={()=>react(e)} title="Tepki gönder">{e}</button>)}{user?.gold&&<button type="button" className="goldBadge" onClick={fireworksShow}>🎆 Havai Fişek</button>}<button type="button" className="toolBtn" onClick={()=>setEmojiOpen(v=>!v)}>😊 Emoji</button><button type="button" className="toolBtn" onClick={()=>setGifMode(v=>!v)}>GIF</button></div>{emojiOpen&&<div className="emojiTray">{['😀','😂','😍','🥰','😎','🤩','🔥','❤️','👏','🎉','🎵','🪩','🙌','✨','😅','🤍'].map(e=><button type="button" key={e} onClick={()=>insertEmoji(e)}>{e}</button>)}</div>}{gifMode&&<div className="gifBox"><input value={gifUrl} onChange={e=>setGifUrl(e.target.value)} placeholder="GIF bağlantısı (.gif / .webp)"/><button type="button" onClick={sendGif}>Gönder</button></div>}</div>
     <form onSubmit={send} className="chatform chatComposer"><button type="button" className="composerIcon" onClick={()=>setEmojiOpen(v=>!v)} disabled={!user}>😊</button><input value={text} onChange={e=>setText(e.target.value)} placeholder={user?'Mesajını yaz...':'Giriş yaparak sohbete kat'} disabled={!user}/><button className="sendBtn" disabled={!user}>Gönder</button></form>
    </div>

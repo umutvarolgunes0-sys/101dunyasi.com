@@ -3,12 +3,12 @@ import {readData,writeData,audit} from '@/lib/store';
 import {hash,sign} from '@/lib/auth';
 
 export async function GET(){
-  const d=readData();
+  const d=await readData();
   return NextResponse.json({required:!d.setup.completed && d.users.length===0,completed:d.setup.completed});
 }
 
 export async function POST(req){
-  const d=readData();
+  const d=await readData();
   if(d.setup.completed || d.users.length>0) return NextResponse.json({error:'İlk kurulum zaten tamamlandı.'},{status:409});
   const body=await req.json();
   const username=String(body.username||'').trim();
@@ -22,7 +22,7 @@ export async function POST(req){
   d.setup={completed:true,createdAt:now};
   d.settings.stationName=siteName;
   audit(d,user.username,'initial_setup','system');
-  writeData(d);
+  await writeData(d);
   const res=NextResponse.json({ok:true,user:{id:user.id,username:user.username,role:user.role,gold:true}});
   res.cookies.set('token',sign(user),{httpOnly:true,sameSite:'lax',secure:process.env.NODE_ENV==='production',maxAge:60*60*24*7,path:'/'});
   return res;

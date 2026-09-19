@@ -7,7 +7,7 @@ export async function PATCH(req){
   if(!actor||!['MODERATOR','DJ','ADMIN','WEBMASTER'].includes(actor.role))
     return NextResponse.json({error:'Moderasyon yetkisi gerekli.'},{status:403});
   const {id,action,durationSec}=await req.json();
-  const data=readData();
+  const data=await readData();
   const target=data.users.find(u=>String(u.id)===String(id));
   if(!target)return NextResponse.json({error:'Kullanıcı bulunamadı.'},{status:404});
   if(String(target.id)===String(actor.id))return NextResponse.json({error:'Kendine müdahale edemezsin.'},{status:400});
@@ -35,6 +35,6 @@ export async function PATCH(req){
   } else {
     return NextResponse.json({error:'Geçersiz işlem.'},{status:400});
   }
-  writeData(data);
+  await writeData(data);
   return NextResponse.json({ok:true,user:{id:target.id,username:target.username,role:target.role,status:target.status,gold:!!target.gold,mutedUntil:target.mutedUntil||null}});
 }

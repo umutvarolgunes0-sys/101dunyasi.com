@@ -1,22 +1,22 @@
-# Deployment notes
+# 101dunyasi.com — Vercel sürümü
 
-## Local
+Bu sürüm Next.js App Router + Vercel Functions + Neon Postgres + Vercel Blob için hazırlanmıştır.
 
-Use Node.js 20+ and run `npm.cmd install`, then `npm.cmd run dev`.
-For Windows development, a non-OneDrive folder is recommended.
+## Gerekli Vercel bağlantıları
 
-## Production
+- Neon Postgres: projeye bağlı olmalı.
+- Vercel Blob: `101dunyasi-music` store bağlı olmalı.
+- `DATABASE_URL` ve `BLOB_READ_WRITE_TOKEN` environment variables Vercel tarafından projeye eklenmiş olmalı.
+- `JWT_SECRET` üretip Vercel Project Settings → Environment Variables bölümüne ekleyin.
 
-This build still uses a local JSON store and filesystem media by default. That is appropriate for a single-node self-hosted deployment, not a multi-instance serverless setup.
+## Deploy
 
-For internet production, use:
+GitHub'a bu sürümü push ettikten sonra Vercel otomatik olarak `npm run build` çalıştırır.
 
-- a persistent Node.js host for `server.js`
-- HTTPS/reverse proxy
-- a strong `JWT_SECRET`
-- persistent media/object storage
-- PostgreSQL for multi-instance data
-- Redis for shared presence/rate-limit/realtime state
-- a TURN service if WebRTC compatibility is needed elsewhere
+`node_modules/` GitHub'a yüklenmemelidir.
 
-The shared DJ stream itself is server-generated from browser microphone chunks and exposed at `/radio/live.mp3`.
+## Önemli
+
+Vercel sürümünde kalıcı veriler Neon'a, müzik dosyaları Blob'a yazılır. Eski `server.js`, yerel `db.json` ve FFmpeg tabanlı sürekli yayın motoru kullanılmaz.
+
+Otomatik müzik oynatma tarayıcı tarafında Blob/public URL üzerinden yapılır. Gerçek zamanlı DJ mikrofon yayını için ayrı bir sürekli çalışan yayın servisi gerekir; bu sürümde DJ durumu ve yönetim API'leri Vercel üzerinde çalışır.
